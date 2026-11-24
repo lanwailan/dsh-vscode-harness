@@ -46,4 +46,4 @@ pre-merge-commit:
 pre-push:
   jobs:
     - name: typecheck
-      run: pnpm run typecheck
+      run: pnpm --filter dsh-vscode-harness run typecheck && pnpm exec tsc -b apps/vscode-host packages/vscode/ui-layout
