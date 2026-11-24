@@ -18,6 +18,7 @@
   "scripts": {
     "build": "tsx scripts/build.ts",
     "build:artifacts": "tsx scripts/build.ts --scope artifacts",
+    "build:artifacts:serial": "tsx scripts/build.ts --scope artifacts --serial",
     "build:check": "tsx scripts/build.ts --scope check",
     "build:official": "tsx scripts/build.ts --profile official",
     "build:lib": "pnpm run build:lib:host && pnpm run build:lib:client",
@@ -28,6 +29,8 @@
     "watch:vscode": "pnpm --filter dsh-vscode-harness run watch",
     "package:vsix": "pnpm --filter dsh-vscode-harness run package:vsix",
     "package:vsix:mac:arm64": "pnpm --filter dsh-vscode-harness run package:vsix --target darwin-arm64",
+    "package:vsix:win:x64": "pnpm --filter dsh-vscode-harness run package:vsix --target win32-x64",
+    "package:vsix:linux:x64": "pnpm --filter dsh-vscode-harness run package:vsix --target linux-x64",
     "build:all": "pnpm run build:artifacts && pnpm run build:vscode",
     "clean": "tsx scripts/clean.ts",
     "change-scope": "tsx scripts/change-scope.ts",

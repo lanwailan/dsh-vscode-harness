@@ -39,7 +39,40 @@ VS Code Extension Host (apps/vscode)
 | `apps/vscode-host` | `@deepseek-ai/dsh-vscode-host` | 本地 Node Host 启动器：IPC 私有凭据认证、初始化 `~/.dsh/profiles/vscode`、自动同步 VS Code 工作区目录 |
 | `apps/vscode` | `dsh-vscode-harness` | VS Code 扩展主体：Host 进程管理、`postMessage` HTTP/WebSocket/Bundle 代理、Sidebar View 与多标签页 Editor Panel 管理 |
 
-## 快速开始
+## CI/CD 自动构建 `.vsix`（GitHub Actions）
+
+仓库内置 [`.github/workflows/build-vsix.yml`](./.github/workflows/build-vsix.yml)，在 GitHub Actions 原生多平台 Runner 上并行构建、原生启动冒烟验证并产出以下三个平台的独立 `.vsix`：
+
+| 平台 | Runner | 产物文件名 |
+|---|---|---|
+| macOS Apple Silicon | `macos-latest` | `dsh-vscode-harness-<version>-darwin-arm64.vsix` |
+| Windows x64 | `windows-latest` | `dsh-vscode-harness-<version>-win32-x64.vsix` |
+| Linux x64 | `ubuntu-latest` | `dsh-vscode-harness-<version>-linux-x64.vsix` |
+
+- **Push 到 `main` / PR / 手动触发（`workflow_dispatch`）**：构建并上传各平台 `.vsix` 以及 `SHA256SUMS.txt` 至 Workflow **Artifacts**（保留 30 天）。
+- **推送版本标签 `v*`**（例如 `git tag v0.1.0 && git push origin v0.1.0`）或在手动触发时勾选 `create_release`：自动创建 / 更新 **GitHub Release** 并挂载全部平台 `.vsix` 与 `SHA256SUMS.txt`。
+
+## 安装 `.vsix`
+
+从 GitHub Actions Artifacts 或 Releases 下载对应平台的 `.vsix` 后，可在 VS Code 扩展面板选择 **Install from VSIX…**，或执行命令行安装：
+
+- **macOS**：
+  ```sh
+  "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" \
+    --install-extension dsh-vscode-harness-0.1.0-darwin-arm64.vsix
+  ```
+- **Windows (PowerShell)**：
+  ```powershell
+  code --install-extension dsh-vscode-harness-0.1.0-win32-x64.vsix
+  ```
+- **Linux**：
+  ```sh
+  code --install-extension dsh-vscode-harness-0.1.0-linux-x64.vsix
+  ```
+
+> 运行时要求本机安装 Node.js `>= 22.19`（推荐 `>= 24`）；扩展会自动探测常见路径（macOS Homebrew/nvm、Windows `where.exe`/Program Files/nvm-windows/Volta/Scoop 等），也可在 VS Code 设置 `dsh.nodePath` 中手动指定。
+
+## 本地开发与调试
 
 ### 1. 安装依赖与构建
 
@@ -58,28 +91,23 @@ pnpm run build:vscode
 pnpm run watch:vscode
 ```
 
-### 2. 打包并安装 `.vsix`（macOS arm64）
+本地打包对应当前平台的 `.vsix`（可选）：
 
 ```sh
-pnpm run package:vsix:mac:arm64
+pnpm run package:vsix:mac:arm64   # macOS arm64
+pnpm run package:vsix:win:x64     # Windows x64
+pnpm run package:vsix:linux:x64   # Linux x64
 ```
 
-产物输出至 `apps/vscode/dist/dsh-vscode-harness-0.1.0-darwin-arm64.vsix`，可通过命令行或在 VS Code 扩展面板选择 **Install from VSIX…** 安装：
-
-```sh
-"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" \
-  --install-extension apps/vscode/dist/dsh-vscode-harness-0.1.0-darwin-arm64.vsix
-```
-
-### 3. 在 VS Code 中运行调试（F5）
+### 2. 在 VS Code 中运行调试（F5）
 
 1. 用 VS Code 打开本仓库根目录。
 2. 按 **`F5`** 启动预设调试配置 `Run DeepSeek Harness VS Code Extension`（定义于 [`.vscode/launch.json`](./.vscode/launch.json)）。
 3. 在弹出的 Extension Development Host 窗口左侧 Activity Bar 点击 **DeepSeek Harness** 鲸鱼图标即可使用。
 
-### 4. 常用命令与配置
+### 3. 常用命令与配置
 
-- 命令面板（`Cmd+Shift+P`）：
+- 命令面板（`Cmd+Shift+P` / `Ctrl+Shift+P`）：
   - `DeepSeek Harness: New Chat` — 在当前工作区新建对话标签页
   - `DeepSeek Harness: Open Settings` — 打开宽屏设置标签页
   - `DeepSeek Harness: Open Plugins` — 打开插件管理标签页

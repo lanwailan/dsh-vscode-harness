@@ -44,11 +44,60 @@ function probeNodeVersion(command: string, extraEnv?: Readonly<Record<string, st
       timeout: 3_000,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
       env: extraEnv ? { ...process.env, ...extraEnv } : process.env,
     }).trim()
   } catch {
     return undefined
   }
+}
+
+function discoverWindowsNodes(): string[] {
+  if (process.platform !== 'win32') return []
+  const found: string[] = []
+  try {
+    const output = execFileSync('where.exe', ['node'], {
+      timeout: 3_000,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true,
+    })
+    for (const line of output.split(/\r?\n/)) {
+      const candidate = line.trim()
+      if (candidate.length > 0 && existsSync(candidate)) found.push(candidate)
+    }
+  } catch {
+    // Fall through to common Windows installation paths.
+  }
+
+  const knownPaths = [
+    process.env.NVM_SYMLINK ? join(process.env.NVM_SYMLINK, 'node.exe') : undefined,
+    process.env.FNM_MULTISHELL_PATH ? join(process.env.FNM_MULTISHELL_PATH, 'node.exe') : undefined,
+    join(process.env.ProgramFiles || 'C:\\Program Files', 'nodejs', 'node.exe'),
+    join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'nodejs', 'node.exe'),
+    process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'Programs', 'nodejs', 'node.exe') : undefined,
+    join(homedir(), '.volta', 'bin', 'node.exe'),
+    join(homedir(), 'scoop', 'shims', 'node.exe'),
+  ].filter((item): item is string => typeof item === 'string' && existsSync(item))
+  found.push(...knownPaths)
+
+  const nvmHome = process.env.NVM_HOME || (process.env.APPDATA ? join(process.env.APPDATA, 'nvm') : undefined)
+  if (nvmHome !== undefined && existsSync(nvmHome)) {
+    try {
+      const nvmNodes = readdirSync(nvmHome)
+        .filter(entry => /^v?\d+\./.test(entry))
+        .sort()
+        .reverse()
+        .map(entry => join(nvmHome, entry, 'node.exe'))
+        .filter(candidate => existsSync(candidate))
+      found.push(...nvmNodes)
+    } catch {
+      // Ignore unreadable nvm-windows directories.
+    }
+  }
+
+  found.push('node.exe')
+  return found
 }
 
 function probeLoginShellNode(): string | undefined {
@@ -101,14 +150,19 @@ function resolveNodeExecutable(configuredPath: string, log: (line: string) => vo
   const candidates: string[] = []
   if (configuredPath.trim().length > 0) candidates.push(configuredPath.trim())
   if (process.env.DSH_NODE_PATH) candidates.push(process.env.DSH_NODE_PATH)
-  const shellNode = probeLoginShellNode()
-  if (shellNode !== undefined) candidates.push(shellNode)
-  if (process.platform === 'darwin') {
-    candidates.push('/opt/homebrew/bin/node', '/usr/local/bin/node')
-  } else if (process.platform === 'linux') {
-    candidates.push('/usr/local/bin/node', '/usr/bin/node')
+  if (process.platform === 'win32') {
+    candidates.push(...discoverWindowsNodes())
+  } else {
+    const shellNode = probeLoginShellNode()
+    if (shellNode !== undefined) candidates.push(shellNode)
+    if (process.platform === 'darwin') {
+      candidates.push('/opt/homebrew/bin/node', '/usr/local/bin/node')
+    } else if (process.platform === 'linux') {
+      candidates.push('/usr/local/bin/node', '/usr/bin/node')
+    }
+    candidates.push(...discoverNvmNodes())
   }
-  candidates.push(...discoverNvmNodes(), 'node')
+  candidates.push('node')
 
   const seen = new Set<string>()
   for (const command of candidates) {
@@ -231,6 +285,7 @@ export class DshHostManager implements vscode.Disposable {
       cwd: workspacePaths[0] ?? homedir(),
       env,
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
+      windowsHide: true,
     })
     this.child = child
 

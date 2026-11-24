@@ -118,7 +118,8 @@
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit",
-    "package:vsix": "tsx scripts/package-vsix.ts"
+    "package:vsix": "tsx scripts/package-vsix.ts",
+    "verify:vsix": "tsx scripts/verify-vsix.ts"
   },
   "dependencies": {
     "ws": "^8.21.3"

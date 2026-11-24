@@ -223,7 +223,11 @@ async function main(): Promise<void> {
 }
 
 const isEntrypoint = Boolean(import.meta.main)
-  || (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url))
+  || (process.argv[1] !== undefined && (
+    process.platform === 'win32'
+      ? resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase()
+      : resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+  ))
 
 if (isEntrypoint) {
   main().catch((error: unknown) => {
