@@ -25,6 +25,7 @@ export interface VsCodeBridge {
   readonly surface: VsCodeSurfaceState
   openConversation(sessionId?: string, title?: string, workspaceId?: string): void
   openPanel(panelId: string, title?: string): void
+  closeTab(): void
   setTabTitle(title: string): void
   notifyActiveSession(sessionId: string | undefined, panelId: string | null): void
   openFile(filePath: string, line?: number, column?: number): void

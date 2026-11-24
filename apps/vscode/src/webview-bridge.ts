@@ -20,6 +20,7 @@ import type {
 export interface WebviewBridgeCallbacks {
   readonly onOpenConversation?: (sessionId?: string, title?: string, workspaceId?: string) => void
   readonly onOpenPanel?: (panelId: string, title?: string) => void
+  readonly onCloseTab?: () => void
   readonly onTabTitle?: (title: string) => void
   readonly onActiveSession?: (sessionId: string | undefined, panelId: string | null) => void
 }
@@ -169,6 +170,10 @@ export class WebviewBridge implements vscode.Disposable {
       }
       case 'open-panel': {
         this.callbacks.onOpenPanel?.(msg.panelId, msg.title)
+        return
+      }
+      case 'close-tab': {
+        this.callbacks.onCloseTab?.()
         return
       }
       case 'tab-title': {

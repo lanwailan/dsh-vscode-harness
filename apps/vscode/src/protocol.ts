@@ -48,6 +48,7 @@ export type WebviewToHostMessage =
   | { readonly type: 'ws-close'; readonly wsId: number; readonly code?: number; readonly reason?: string }
   | { readonly type: 'open-conversation'; readonly sessionId?: string; readonly title?: string; readonly workspaceId?: string }
   | { readonly type: 'open-panel'; readonly panelId: string; readonly title?: string }
+  | { readonly type: 'close-tab' }
   | { readonly type: 'tab-title'; readonly title: string }
   | { readonly type: 'active-session'; readonly sessionId?: string; readonly panelId: string | null }
   | { readonly type: 'open-file'; readonly filePath: string; readonly line?: number; readonly column?: number }

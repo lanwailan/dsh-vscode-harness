@@ -109,13 +109,16 @@ async function verifyNativeHostBoot(extRoot: string, tempRoot: string): Promise<
     const mountedIds = new Set(entries.map(e => e.id).filter((id): id is string => typeof id === 'string'))
     assert(mountedIds.has('@deepseek-ai/dsh-vscode-ui-layout'), 'Mounted client plugins missing @deepseek-ai/dsh-vscode-ui-layout')
     assert(!mountedIds.has('@deepseek-ai/dsh-client-ui-layout'), 'Stock @deepseek-ai/dsh-client-ui-layout should be disabled')
+    assert(!mountedIds.has('@deepseek-ai/dsh-client-ui-sidebar'), 'Stock @deepseek-ai/dsh-client-ui-sidebar should be disabled')
     for (const pruned of [
+      '@deepseek-ai/dsh-client-ui-settings-account',
+      '@deepseek-ai/dsh-client-ui-account-notifications',
       '@deepseek-ai/dsh-client-ui-sidebar-files',
       '@deepseek-ai/dsh-client-ui-sidebar-terminal',
       '@deepseek-ai/dsh-client-ui-sidebar-browser',
       '@deepseek-ai/dsh-client-ui-sidebar-documentpreview',
     ]) {
-      assert(!mountedIds.has(pruned), `Pruned panel still mounted: ${pruned}`)
+      assert(!mountedIds.has(pruned), `Pruned plugin still mounted: ${pruned}`)
     }
     console.log(`[verify-vsix] Host booted cleanly at ${ready.url} (${String(mountedIds.size)} mounted client plugins, ${String(batches.length)} batch(es))`)
 

@@ -2,9 +2,33 @@
 # Layered AFTER @deepseek-ai/dsh-base and @deepseek-ai/dsh-web-app so official
 # vendor bundles stay completely unmodified.
 
-# Replace the standalone 3-column AppFrame with the VS Code split-surface frame
-# (Activity Bar Sidebar view + Editor Tab conversation/global panel views).
+# Replace the standalone 3-column AppFrame and default sidebar with the compact
+# VS Code split-surface layout and toolbar sidebar (no DSH logo, no bottom
+# account/settings footer; Row 1 = New Session + plugin icons + Settings gear).
 - id: ui-layout
+  disabled: true
+
+- id: ui-sidebar
+  disabled: true
+
+- id: entry-customization
+  disabled: true
+
+# Disable DeepSeek official account and official-only model onboarding so
+# Settings exposes only third-party & custom model provider configuration (`llm-pi-ai`).
+- id: deepseek-account
+  disabled: true
+
+- id: llm-deepseek-account
+  disabled: true
+
+- id: llm-deepseek
+  disabled: true
+
+- id: ui-settings-account
+  disabled: true
+
+- id: ui-account-notifications
   disabled: true
 
 # Disable Web right-sidebar panels that overlap native VS Code IDE features
@@ -31,7 +55,7 @@
 - id: product-analytics
   disabled: true
 
-# Mount the VS Code split-surface layout plugin.
+# Mount the VS Code split-surface layout + compact sidebar plugin.
 - insert:
     - id: vscode-ui-layout
       name: '@deepseek-ai/dsh-vscode-ui-layout'

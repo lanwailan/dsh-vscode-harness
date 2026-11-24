@@ -1,61 +1,187 @@
-.root {
-  display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+/* Right-side Settings dialog card rendered inside the VS Code Editor Tab (`vscode-settings`).
+ * Uses official ui-theme elevation and mask tokens so both Light and Dark VS Code themes match natively. */
+
+.backdrop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
-  min-height: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
   overflow: hidden;
-  background: var(--dsr-bg, transparent);
-  color: var(--dsr-text, inherit);
+}
+
+.dialog {
+  display: grid;
+  grid-template-columns: 212px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'title header'
+    'nav content';
+  width: min(860px, 100%);
+  height: min(760px, 100%);
+  min-height: 0;
+  border-radius: var(--dsw-radius-panel, 16px);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  box-shadow: var(--dsw-elevation-prominent);
+  overflow: hidden;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.navTitle {
+  grid-area: title;
+  display: flex;
+  align-items: center;
+  padding: 20px 12px 8px 22px;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 16px 16px 4px 20px;
+}
+
+.closeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
 }
 
 .nav {
+  grid-area: nav;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 16px 12px;
-  border-right: 1px solid var(--dsr-border, rgba(128, 128, 128, 0.2));
+  gap: 4px;
+  padding: 10px 12px 16px;
   overflow-y: auto;
-}
-
-.heading {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 10px 12px;
-  opacity: 0.8;
 }
 
 .navItem {
   appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  padding: 0 14px 0 12px;
+  box-sizing: border-box;
   border: none;
+  border-radius: var(--dsw-radius-md);
   background: transparent;
-  color: inherit;
+  color: var(--dsw-alias-label-secondary);
   text-align: left;
-  font: inherit;
-  font-size: 13px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
   cursor: pointer;
 }
 
 .navItem:hover {
-  background: var(--dsr-surface-hover, rgba(128, 128, 128, 0.12));
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
 }
 
 .navItemActive {
-  background: var(--dsr-surface-active, rgba(77, 107, 254, 0.16));
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
   font-weight: 500;
 }
 
+.navIcon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .content {
+  grid-area: content;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px 28px;
+  padding: 4px 28px 28px 20px;
 }
 
 .empty {
   font-size: 13px;
-  opacity: 0.65;
+  color: var(--dsw-alias-label-secondary);
   padding: 24px 0;
+}
+
+@media (max-width: 680px) {
+  .backdrop {
+    padding: 0;
+  }
+
+  .dialog {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'header'
+      'nav'
+      'content';
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .navTitle {
+    display: none;
+  }
+
+  .header {
+    padding: 10px 12px 6px;
+  }
+
+  .nav {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+    padding: 4px 10px 8px;
+  }
+
+  .navItem {
+    width: auto;
+    flex: none;
+    height: 34px;
+  }
+
+  .content {
+    padding: 16px;
+  }
 }

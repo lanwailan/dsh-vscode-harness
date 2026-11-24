@@ -119,6 +119,9 @@ export class DshEditorPanelManager implements vscode.Disposable {
         onOpenPanel: (panelId, title) => {
           this.openPanel(panelId, title)
         },
+        onCloseTab: () => {
+          panel.dispose()
+        },
         onTabTitle: (title) => {
           const clean = title.trim()
           if (clean.length > 0 && panel.title !== clean) panel.title = clean

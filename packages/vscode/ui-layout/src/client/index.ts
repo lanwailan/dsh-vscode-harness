@@ -1,9 +1,11 @@
 /**
- * VS Code split-surface layout plugin (`@deepseek-ai/dsh-vscode-ui-layout`).
- * Replaces `@deepseek-ai/dsh-client-ui-layout` in the VS Code profile while
- * preserving the exact `ctx.layout` service interface and child slot declarations
- * so all official vendor UI plugins (`ui-sidebar`, `ui-workspace`, `ui-chat`,
- * `ui-settings*`, `ui-plugin-manager`, etc.) work without modification.
+ * VS Code split-surface layout and sidebar plugin (`@deepseek-ai/dsh-vscode-ui-layout`).
+ *
+ * Replaces both `@deepseek-ai/dsh-client-ui-layout` and `@deepseek-ai/dsh-client-ui-sidebar`
+ * in the VS Code profile while preserving the exact `ctx.layout` service interface and
+ * child slot contracts (`sidebar.panellist`, `sidebar.workspaces`, `settings.section.view`, etc.)
+ * so official vendor plugins (`ui-workspace`, `ui-chat`, `ui-settings-models`, `ui-plugin-manager`,
+ * `ui-schedule`, etc.) work without modification.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
@@ -12,18 +14,29 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings-general/client'
-import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {
+  SidebarPanelMetadata,
+  SidebarSectionInjected,
+} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { ILayout, MainPanelId, PanelInfo } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { resolveSlotLabel, type HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import { getVsCodeBridge, type VsCodeNavigateTarget } from './bridge.ts'
+import { de, en, es, fr, ja, pt, ru, zh, type VsCodeUiKey } from './locales.ts'
 import { VsCodeLayoutController } from './service.ts'
 import { createVsCodeLayoutStore } from './stores.ts'
 import { VsCodeThemePresenter } from './theme-presenter.ts'
 import { VsCodeFrame, type VsCodeFrameInjected } from './VsCodeFrame.tsx'
+import {
+  VsCodePanelIcon,
+  VsCodePanelTrailing,
+  VsCodeSidebarRoot,
+  type VsCodeSidebarInjected,
+} from './VsCodeSidebarRoot.tsx'
 import {
   SettingsTabPanel,
   type SettingsTabPanelInjected,
@@ -40,7 +53,19 @@ export type {
 } from './bridge.ts'
 export { VsCodeLayoutController } from './service.ts'
 
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    /** VS Code sidebar toolbar and Settings dialog copy. */
+    vscodeUi: VsCodeUiKey
+  }
+}
+
+const NS = 'vscodeUi'
 export const SETTINGS_PANEL_ID = 'vscode-settings' as MainPanelId
+
+const SIDEBAR_SECTION_INJECT: SidebarSectionInjected = {
+  hooks: { sectionScroller: (_standard, { useSectionScroller }) => useSectionScroller },
+}
 
 /** Required services (same core dependencies as official `ui-layout`). */
 export const inject = ['slots', 'theme', 'locale', 'shortcuts']
@@ -49,8 +74,14 @@ export function apply(ctx: ClientContext): void {
   const bridge = getVsCodeBridge()
   const mode = bridge?.surface.mode ?? 'standalone'
 
+  ctx.effect(
+    () => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }),
+    'vscode-ui-layout: dictionaries',
+  )
+  const t = ctx.locale.bind(NS)
+
   const resolvePanelTitle = (panelId: string): string => {
-    if (panelId === SETTINGS_PANEL_ID) return 'Settings'
+    if (panelId === SETTINGS_PANEL_ID) return t('settings.title')
     const entry = ctx.slots.entriesOfSlot('sidebar.panellist').find(item => item.options.id === panelId)
     return (entry === undefined ? undefined : resolveSlotLabel(entry.options.label)) ?? panelId
   }
@@ -78,7 +109,6 @@ export function apply(ctx: ClientContext): void {
         instance.actions.selectPanel(target)
         return
       }
-      // Keep a pending editor panel selection until its plugin finishes activating.
       if (pendingEditorPanel !== null) return
       instance.actions.retainMainPanels(registered)
     }
@@ -114,7 +144,7 @@ export function apply(ctx: ClientContext): void {
               }
               const list = ctx.get('sessions')?.list.getSnapshot()
               if (list !== undefined && list.ids.length === 0) {
-                bridge.openConversation(undefined, 'DeepSeek Chat')
+                bridge.openConversation(undefined, t('session.new'))
               }
             },
           }
@@ -139,7 +169,59 @@ export function apply(ctx: ClientContext): void {
       inject: (): VsCodeFrameInjected => ({ mode, bridge, resolvePanelTitle }),
     }, VsCodeFrame)
 
-    // Full-width Settings panel for the VS Code Editor Tab (`dsh.openSettings`).
+    // Sidebar shell: compact top toolbar (New Session + right-aligned plugin icons + Settings gear)
+    // above stock `sidebar.workspaces`, with no DSH logo and no bottom account/settings footer.
+    const panels = createSnapshotStore<readonly SidebarPanelMetadata[]>([])
+    const syncPanels = (): void => {
+      const next = ctx.slots.entriesOfSlot('sidebar.panellist').map(({ options }) => {
+        const id = options.id as MainPanelId
+        return { id, order: options.order ?? 0, label: resolveSlotLabel(options.label) ?? id }
+      }).sort((a, b) => a.order - b.order)
+      const previous = panels.getSnapshot()
+      if (previous.length === next.length && previous.every((panel, index) => {
+        const candidate = next[index] as SidebarPanelMetadata
+        return panel.id === candidate.id && panel.order === candidate.order && panel.label === candidate.label
+      })) return
+      panels.set(next)
+    }
+    const disposePanelIconFactory = ctx.slots.registerFactory({
+      name: 'sidebar.panel.icon',
+      scope: 'root',
+      children: { 'sidebar.panellist': { kind: 'list', scope: 'root' } },
+    }, VsCodePanelIcon)
+    const disposePanelTrailingFactory = ctx.slots.registerFactory({
+      name: 'sidebar.panel.trailing',
+      scope: 'root',
+      children: { 'sidebar.panellist.trailing': { kind: 'list', scope: 'root', inline: true } },
+    }, VsCodePanelTrailing)
+    const disposeSidebar = ctx.slots.register({
+      name: 'sidebar',
+      locale: NS,
+      children: {
+        'sidebar.workspaces': { kind: 'single', scope: 'root', inject: SIDEBAR_SECTION_INJECT },
+        'sidebar.session.action': { kind: 'hoc', scope: 'root' },
+      },
+      inject: (): VsCodeSidebarInjected => ({
+        settingsPanelId: SETTINGS_PANEL_ID,
+        startSession: (workspaceId) => {
+          const uiWorkspace = ctx.get('uiWorkspace')
+          if (uiWorkspace !== undefined) {
+            uiWorkspace.startSession(workspaceId)
+          } else {
+            bridge?.openConversation(undefined, t('session.new'), workspaceId)
+          }
+        },
+        selectPanel: (id) => { layout.selectPanel(id) },
+        openSettings: () => { layout.selectPanel(SETTINGS_PANEL_ID) },
+        hooks: { panels },
+      }),
+    }, VsCodeSidebarRoot)
+    const offPanelSlots = ctx.slots.subscribe('sidebar.panellist', syncPanels)
+    const offPanelLocale = ctx.locale.subscribe(syncPanels)
+    syncPanels()
+
+    // Right-side Settings dialog rendered inside a VS Code Editor Tab (`vscode-settings`).
+    // Places Models (third-party / custom model configuration) first and filters out DeepSeek account.
     let sectionsVersion = -1
     let sectionsLocale = -1
     let sectionRows: readonly SettingsTabSectionRow[] = []
@@ -153,9 +235,10 @@ export function apply(ctx: ClientContext): void {
           sectionRows = ctx.slots.entries('settings.section')
             .map(entry => ({
               id: entry.options.id ?? '',
-              order: entry.options.order ?? 0,
+              order: entry.options.id === 'models' ? -1 : (entry.options.order ?? 0),
               label: resolveSlotLabel(entry.options.label) ?? entry.options.id ?? '',
             }))
+            .filter(row => row.id.length > 0 && row.id !== 'account')
             .sort((a, b) => a.order - b.order)
         }
         return sectionRows
@@ -172,7 +255,14 @@ export function apply(ctx: ClientContext): void {
     const disposeSettingsTab = ctx.slots.register({
       name: 'main',
       key: SETTINGS_PANEL_ID,
-      inject: (): SettingsTabPanelInjected => ({ hooks: { sections: settingsSections } }),
+      locale: NS,
+      inject: (): SettingsTabPanelInjected => ({
+        onClose: () => {
+          if (bridge !== undefined) bridge.closeTab()
+          else layout.selectPanel(null)
+        },
+        hooks: { sections: settingsSections },
+      }),
     }, SettingsTabPanel)
 
     const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
@@ -252,6 +342,11 @@ export function apply(ctx: ClientContext): void {
     return () => {
       clearPendingNavigation()
       for (const dispose of disposeBridgeListeners) dispose()
+      offPanelSlots()
+      offPanelLocale()
+      disposeSidebar()
+      disposePanelTrailingFactory()
+      disposePanelIconFactory()
       layout.dispose()
       disposePanels()
       disposeSettingsTab()

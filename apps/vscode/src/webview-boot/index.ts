@@ -373,6 +373,9 @@ function bootstrap(): void {
           ...(title === undefined ? {} : { title }),
         })
       },
+      closeTab() {
+        vscodeApi.postMessage({ type: 'close-tab' })
+      },
       setTabTitle(title: string) {
         vscodeApi.postMessage({ type: 'tab-title', title })
       },

@@ -2,7 +2,7 @@
   "name": "dsh-vscode-harness",
   "displayName": "DeepSeek Harness",
   "description": "DeepSeek Harness coding agent for VS Code: Activity Bar sidebar + Editor Tab conversations sharing your DSH_HOME",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "deepseek-harness",
   "license": "MIT",
   "private": true,
