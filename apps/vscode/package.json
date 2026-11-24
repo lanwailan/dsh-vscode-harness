@@ -1,0 +1,132 @@
+{
+  "name": "dsh-vscode-harness",
+  "displayName": "DeepSeek Harness",
+  "description": "DeepSeek Harness coding agent for VS Code: Activity Bar sidebar + Editor Tab conversations sharing your DSH_HOME",
+  "version": "0.1.0",
+  "publisher": "deepseek-harness",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onView:dsh.sidebar",
+    "onCommand:dsh.newChat",
+    "onCommand:dsh.openSettings",
+    "onCommand:dsh.openPlugins",
+    "onCommand:dsh.restartHost",
+    "onCommand:dsh.showHostLogs"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "deepseek-harness",
+          "title": "DeepSeek Harness",
+          "icon": "media/whale.svg"
+        }
+      ]
+    },
+    "views": {
+      "deepseek-harness": [
+        {
+          "type": "webview",
+          "id": "dsh.sidebar",
+          "name": "DeepSeek Harness"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "dsh.newChat",
+        "title": "New Chat",
+        "category": "DeepSeek Harness",
+        "icon": "$(add)"
+      },
+      {
+        "command": "dsh.openSettings",
+        "title": "Open Settings",
+        "category": "DeepSeek Harness",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "dsh.openPlugins",
+        "title": "Open Plugins",
+        "category": "DeepSeek Harness",
+        "icon": "$(extensions)"
+      },
+      {
+        "command": "dsh.restartHost",
+        "title": "Restart Local Host",
+        "category": "DeepSeek Harness",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "dsh.showHostLogs",
+        "title": "Show Host Logs",
+        "category": "DeepSeek Harness",
+        "icon": "$(output)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "dsh.newChat",
+          "when": "view == dsh.sidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "dsh.openSettings",
+          "when": "view == dsh.sidebar",
+          "group": "navigation@2"
+        },
+        {
+          "command": "dsh.restartHost",
+          "when": "view == dsh.sidebar",
+          "group": "inline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "DeepSeek Harness",
+      "properties": {
+        "dsh.nodePath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to a Node.js (>= 22.19) executable used to run the local DeepSeek Harness Host. Leave empty for auto-detection."
+        },
+        "dsh.home": {
+          "type": "string",
+          "default": "",
+          "description": "Optional DSH_HOME override. Leave empty to share the default ~/.dsh directory with DeepSeek Harness CLI and Desktop."
+        },
+        "dsh.autoSyncWorkspace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically register open VS Code workspace folders in DeepSeek Harness on startup."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/vscode": "^1.96.0",
+    "@types/ws": "8.18.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^6.0.3"
+  }
+}

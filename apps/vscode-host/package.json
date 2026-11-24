@@ -1,0 +1,35 @@
+{
+  "name": "@deepseek-ai/dsh-vscode-host",
+  "description": "Local Node host process for the dsh-vscode-harness VS Code extension, sharing the user's DSH_HOME with CLI/Desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "dependencies": {
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh": "workspace:*",
+    "@deepseek-ai/dsh-app-boot": "workspace:*",
+    "@deepseek-ai/dsh-base": "workspace:*",
+    "@deepseek-ai/dsh-client-connection": "workspace:*",
+    "@deepseek-ai/dsh-home-paths": "workspace:*",
+    "@deepseek-ai/dsh-host-authentication-desktop": "workspace:*",
+    "@deepseek-ai/dsh-host-webserver": "workspace:*",
+    "@deepseek-ai/dsh-vscode-app": "workspace:*",
+    "@deepseek-ai/dsh-vscode-ui-layout": "workspace:*",
+    "@deepseek-ai/dsh-web-app": "workspace:*",
+    "@deepseek-ai/dsh-workspace": "workspace:*"
+  }
+}

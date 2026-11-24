@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    { "path": "../../vendor/cordis" },
+    { "path": "../../packages/boot/app-boot" },
+    { "path": "../../packages/util/home-paths" },
+    { "path": "../../packages/host/authentication-desktop" },
+    { "path": "../../packages/host/webserver" },
+    { "path": "../../packages/client/connection/tsconfig.host.json" },
+    { "path": "../../packages/workspace/workspace" },
+    { "path": "../../packages/vscode/bundle" },
+    { "path": "../cli" }
+  ]
+}

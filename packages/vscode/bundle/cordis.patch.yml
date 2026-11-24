@@ -1,0 +1,37 @@
+# VS Code extension profile bundle patch.
+# Layered AFTER @deepseek-ai/dsh-base and @deepseek-ai/dsh-web-app so official
+# vendor bundles stay completely unmodified.
+
+# Replace the standalone 3-column AppFrame with the VS Code split-surface frame
+# (Activity Bar Sidebar view + Editor Tab conversation/global panel views).
+- id: ui-layout
+  disabled: true
+
+# Disable Web right-sidebar panels that overlap native VS Code IDE features
+# (Explorer, Integrated Terminal, Editor preview, Browser).
+# `ui-sidebar-right` itself remains mounted so Plan Review (`ui-plan`),
+# Changed-Files Review (`ui-deliverables`), and Scheduled Tasks (`ui-schedule`)
+# keep working seamlessly inside Editor Tabs.
+- id: ui-sidebar-files
+  disabled: true
+
+- id: ui-sidebar-terminal
+  disabled: true
+
+- id: ui-sidebar-browser
+  disabled: true
+
+- id: ui-sidebar-documentpreview
+  disabled: true
+
+# Disable Desktop-only telemetry and browser-auto-open.
+- id: desktop-product-telemetry
+  disabled: true
+
+- id: product-analytics
+  disabled: true
+
+# Mount the VS Code split-surface layout plugin.
+- insert:
+    - id: vscode-ui-layout
+      name: '@deepseek-ai/dsh-vscode-ui-layout'

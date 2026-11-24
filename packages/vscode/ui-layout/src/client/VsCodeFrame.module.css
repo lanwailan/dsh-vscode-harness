@@ -1,0 +1,124 @@
+.frame {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--dsr-bg, transparent);
+}
+
+.sidebarOnly {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+.sidebarCol {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarOnly .sidebarCol > * {
+  width: 100% !important;
+  max-width: none !important;
+  flex: 1 1 auto;
+}
+
+.sidebarOnly :global([data-sidebar-toggle]) {
+  display: none !important;
+}
+
+.editorOnly {
+  grid-template-rows: 1fr auto;
+}
+
+.centerCol {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mainPanel {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.rightbarCol {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.bottomRow {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.overlayLayer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  transform: translateX(-4px);
+  cursor: col-resize;
+  z-index: 20;
+}
+
+.handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  background: transparent;
+  transition: background-color 120ms ease;
+}
+
+.handle:hover::after,
+.handle[data-dragging]::after {
+  background: var(--dsr-border-focus, #4d6bfe);
+}
+
+.fallbackFrame {
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+.fallbackCenter {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

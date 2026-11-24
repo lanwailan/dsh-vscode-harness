@@ -1,0 +1,29 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    { "path": "../../util/brand" },
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../core/session" },
+    { "path": "../../workspace/workspace" },
+    { "path": "../../api/session-controller/tsconfig.client.json" },
+    { "path": "../../client/locale/tsconfig.client.json" },
+    { "path": "../../client/ui-slots" },
+    { "path": "../../client/ui-theme/tsconfig.client.json" },
+    { "path": "../../client/store" },
+    { "path": "../../client/ui-renderer" },
+    { "path": "../../client/ui-session" },
+    { "path": "../../client/ui-layout" },
+    { "path": "../../client/ui-workspace/tsconfig.client.json" },
+    { "path": "../../client/ui-settings/tsconfig.client.json" },
+    { "path": "../../client/ui-settings-general/tsconfig.client.json" },
+    { "path": "../../client/ui-sidebar" },
+    { "path": "../../client/shortcuts/tsconfig.client.json" }
+  ]
+}
