@@ -29,6 +29,8 @@ tmp/
 !.vscode/launch.json
 !.vscode/tasks.json
 apps/vscode/out/
+apps/vscode/dist/
+apps/vscode/.vsix-stage/
 apps/vscode/*.vsix
 .DS_Store
 .idea

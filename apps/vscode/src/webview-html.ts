@@ -1,64 +1,76 @@
 /**
- * Builds the VS Code Webview HTML document by reusing the official built `apps/web/dist/index.html`,
+ * Builds the VS Code Webview HTML document from the built Web frontend (`index.html`),
  * rewriting static asset URIs through `webview.asWebviewUri`, injecting `out/webview-boot.js` ahead
  * of the stock client entry module, and computing synchronous package-asset URI mappings.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import * as vscode from 'vscode'
+import type { ExtensionRuntimePaths } from './runtime-paths.ts'
 
-export interface WebviewResourcePaths {
-  readonly webDistDir: string
-  readonly extensionOutDir: string
-  readonly packagesDir: string
-}
-
-export function resolveWebviewResources(repoRoot: string, extensionPath: string): WebviewResourcePaths {
-  return {
-    webDistDir: resolve(repoRoot, 'apps/web/dist'),
-    extensionOutDir: resolve(extensionPath, 'out'),
-    packagesDir: resolve(repoRoot, 'packages'),
-  }
-}
-
-export function localResourceRoots(paths: WebviewResourcePaths): vscode.Uri[] {
-  return [
+export function localResourceRoots(paths: ExtensionRuntimePaths): vscode.Uri[] {
+  const roots = [
     vscode.Uri.file(paths.webDistDir),
     vscode.Uri.file(paths.extensionOutDir),
-    vscode.Uri.file(paths.packagesDir),
   ]
+  if (paths.pluginAssetsDir !== undefined && existsSync(paths.pluginAssetsDir)) {
+    roots.push(vscode.Uri.file(paths.pluginAssetsDir))
+  }
+  if (paths.packagesDir !== undefined && existsSync(paths.packagesDir)) {
+    roots.push(vscode.Uri.file(paths.packagesDir))
+  }
+  return roots
 }
 
 /**
- * Scan workspace packages that emit `lib/assets/` so `require.asset('plugins/<pkg>/assets/<file>')`
- * resolves synchronously to a native `vscode-webview://` URI without extra RPC round-trips.
+ * Map package names to their asset base URIs so `require.asset('plugins/<pkg>/assets/<file>')`
+ * resolves synchronously to a native `vscode-webview://` URI in both packaged and dev modes.
  */
-export function buildPackageAssetMap(webview: vscode.Webview, packagesDir: string): Record<string, string> {
+export function buildPackageAssetMap(webview: vscode.Webview, paths: ExtensionRuntimePaths): Record<string, string> {
   const map: Record<string, string> = {}
-  if (!existsSync(packagesDir)) return map
-  for (const group of readdirSync(packagesDir, { withFileTypes: true })) {
-    if (!group.isDirectory()) continue
-    const groupDir = join(packagesDir, group.name)
-    for (const entry of readdirSync(groupDir, { withFileTypes: true })) {
+
+  if (paths.pluginAssetsDir !== undefined && existsSync(paths.pluginAssetsDir)) {
+    for (const entry of readdirSync(paths.pluginAssetsDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue
-      const pkgDir = join(groupDir, entry.name)
-      const assetsDir = join(pkgDir, 'lib', 'assets')
-      const manifestPath = join(pkgDir, 'package.json')
-      if (!existsSync(assetsDir) || !existsSync(manifestPath)) continue
-      try {
-        const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: unknown }
-        if (typeof manifest.name === 'string') {
-          map[manifest.name] = webview.asWebviewUri(vscode.Uri.file(assetsDir)).toString().replace(/\/+$/, '')
+      const entryDir = join(paths.pluginAssetsDir, entry.name)
+      if (entry.name.startsWith('@')) {
+        for (const pkg of readdirSync(entryDir, { withFileTypes: true })) {
+          if (!pkg.isDirectory()) continue
+          const pkgDir = join(entryDir, pkg.name)
+          map[`${entry.name}/${pkg.name}`] = webview.asWebviewUri(vscode.Uri.file(pkgDir)).toString().replace(/\/+$/, '')
         }
-      } catch {
-        // Ignore malformed package manifests during asset discovery.
+      } else {
+        map[entry.name] = webview.asWebviewUri(vscode.Uri.file(entryDir)).toString().replace(/\/+$/, '')
+      }
+    }
+    return map
+  }
+
+  if (paths.packagesDir !== undefined && existsSync(paths.packagesDir)) {
+    for (const group of readdirSync(paths.packagesDir, { withFileTypes: true })) {
+      if (!group.isDirectory()) continue
+      const groupDir = join(paths.packagesDir, group.name)
+      for (const entry of readdirSync(groupDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+        const pkgDir = join(groupDir, entry.name)
+        const assetsDir = join(pkgDir, 'lib', 'assets')
+        const manifestPath = join(pkgDir, 'package.json')
+        if (!existsSync(assetsDir) || !existsSync(manifestPath)) continue
+        try {
+          const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: unknown }
+          if (typeof manifest.name === 'string') {
+            map[manifest.name] = webview.asWebviewUri(vscode.Uri.file(assetsDir)).toString().replace(/\/+$/, '')
+          }
+        } catch {
+          // Ignore malformed package manifests during asset discovery.
+        }
       }
     }
   }
   return map
 }
 
-export function buildWebviewHtml(webview: vscode.Webview, paths: WebviewResourcePaths): string {
+export function buildWebviewHtml(webview: vscode.Webview, paths: ExtensionRuntimePaths): string {
   const indexPath = join(paths.webDistDir, 'index.html')
   if (!existsSync(indexPath)) {
     return `<!doctype html>

@@ -2,12 +2,12 @@
 import * as vscode from 'vscode'
 import type { DshHostManager } from './host-manager.ts'
 import type { ActiveTabState } from './protocol.ts'
+import type { ExtensionRuntimePaths } from './runtime-paths.ts'
 import { BundleCache, WebviewBridge } from './webview-bridge.ts'
 import {
   buildPackageAssetMap,
   buildWebviewHtml,
   localResourceRoots,
-  type WebviewResourcePaths,
 } from './webview-html.ts'
 
 export interface SidebarNavigationHandler {
@@ -24,7 +24,7 @@ export class DshSidebarViewProvider implements vscode.WebviewViewProvider, vscod
   constructor(
     private readonly hostManager: DshHostManager,
     private readonly bundleCache: BundleCache,
-    private readonly resources: WebviewResourcePaths,
+    private readonly resources: ExtensionRuntimePaths,
     private readonly navigation: SidebarNavigationHandler,
   ) {}
 
@@ -37,7 +37,7 @@ export class DshSidebarViewProvider implements vscode.WebviewViewProvider, vscod
       localResourceRoots: localResourceRoots(this.resources),
     }
 
-    const assetBaseMap = buildPackageAssetMap(webviewView.webview, this.resources.packagesDir)
+    const assetBaseMap = buildPackageAssetMap(webviewView.webview, this.resources)
     const workspaceFolders = (vscode.workspace.workspaceFolders ?? []).map(folder => folder.uri.fsPath)
 
     this.bridge = new WebviewBridge(

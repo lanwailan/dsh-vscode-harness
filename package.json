@@ -26,6 +26,8 @@
     "build:web": "pnpm --filter @deepseek-ai/dsh-web-frontend run build",
     "build:vscode": "pnpm --filter dsh-vscode-harness run build",
     "watch:vscode": "pnpm --filter dsh-vscode-harness run watch",
+    "package:vsix": "pnpm --filter dsh-vscode-harness run package:vsix",
+    "package:vsix:mac:arm64": "pnpm --filter dsh-vscode-harness run package:vsix --target darwin-arm64",
     "build:all": "pnpm run build:artifacts && pnpm run build:vscode",
     "clean": "tsx scripts/clean.ts",
     "change-scope": "tsx scripts/change-scope.ts",

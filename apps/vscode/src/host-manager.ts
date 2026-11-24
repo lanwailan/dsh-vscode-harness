@@ -6,9 +6,10 @@ import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { existsSync, readdirSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import * as vscode from 'vscode'
 import type { IndexInjection } from './protocol.ts'
+import type { ExtensionRuntimePaths } from './runtime-paths.ts'
 
 export interface ReadyHost {
   readonly url: string
@@ -145,7 +146,7 @@ export class DshHostManager implements vscode.Disposable {
   private disposed = false
 
   constructor(
-    private readonly repoRoot: string,
+    private readonly runtimePaths: ExtensionRuntimePaths,
     private readonly output: vscode.OutputChannel,
   ) {}
 
@@ -203,10 +204,12 @@ export class DshHostManager implements vscode.Disposable {
     const configuredHome = config.get<string>('home', '').trim()
     const autoSyncWorkspace = config.get<boolean>('autoSyncWorkspace', true)
 
-    const hostEntry = resolve(this.repoRoot, 'apps/vscode-host/lib/index.js')
+    const hostEntry = this.runtimePaths.hostEntry
     if (!existsSync(hostEntry)) {
       return Promise.reject(new Error(
-        `Built host entry not found at ${hostEntry}. Run "pnpm run build:artifacts" in ${this.repoRoot} first.`,
+        this.runtimePaths.packaged
+          ? `Packaged DeepSeek Harness Host not found at ${hostEntry}. Try reinstalling the extension.`
+          : `Built host entry not found at ${hostEntry}. Run "pnpm run build:artifacts" first.`,
       ))
     }
 
@@ -225,7 +228,7 @@ export class DshHostManager implements vscode.Disposable {
     this.log(`Spawning ${hostEntry}${configuredHome.length > 0 ? ` (DSH_HOME=${configuredHome})` : ' (sharing default ~/.dsh)'}`)
 
     const child = spawn(node.command, [hostEntry], {
-      cwd: workspacePaths[0] ?? this.repoRoot,
+      cwd: workspacePaths[0] ?? homedir(),
       env,
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     })

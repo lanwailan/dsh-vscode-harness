@@ -10,12 +10,12 @@ import * as vscode from 'vscode'
 import { join } from 'node:path'
 import type { DshHostManager } from './host-manager.ts'
 import type { ActiveTabState, NavigateTarget } from './protocol.ts'
+import type { ExtensionRuntimePaths } from './runtime-paths.ts'
 import { BundleCache, WebviewBridge } from './webview-bridge.ts'
 import {
   buildPackageAssetMap,
   buildWebviewHtml,
   localResourceRoots,
-  type WebviewResourcePaths,
 } from './webview-html.ts'
 
 interface TrackedTab {
@@ -34,7 +34,7 @@ export class DshEditorPanelManager implements vscode.Disposable {
     private readonly extensionPath: string,
     private readonly hostManager: DshHostManager,
     private readonly bundleCache: BundleCache,
-    private readonly resources: WebviewResourcePaths,
+    private readonly resources: ExtensionRuntimePaths,
     private readonly onActiveTabChanged: (state: ActiveTabState) => void,
   ) {
     this.iconPath = vscode.Uri.file(join(this.extensionPath, 'media', 'whale.svg'))
@@ -91,7 +91,7 @@ export class DshEditorPanelManager implements vscode.Disposable {
     )
     panel.iconPath = this.iconPath
 
-    const assetBaseMap = buildPackageAssetMap(panel.webview, this.resources.packagesDir)
+    const assetBaseMap = buildPackageAssetMap(panel.webview, this.resources)
     const workspaceFolders = (vscode.workspace.workspaceFolders ?? []).map(folder => folder.uri.fsPath)
 
     const tracked: TrackedTab = {

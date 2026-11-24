@@ -58,13 +58,26 @@ pnpm run build:vscode
 pnpm run watch:vscode
 ```
 
-### 2. 在 VS Code 中运行调试（F5）
+### 2. 打包并安装 `.vsix`（macOS arm64）
+
+```sh
+pnpm run package:vsix:mac:arm64
+```
+
+产物输出至 `apps/vscode/dist/dsh-vscode-harness-0.1.0-darwin-arm64.vsix`，可通过命令行或在 VS Code 扩展面板选择 **Install from VSIX…** 安装：
+
+```sh
+"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" \
+  --install-extension apps/vscode/dist/dsh-vscode-harness-0.1.0-darwin-arm64.vsix
+```
+
+### 3. 在 VS Code 中运行调试（F5）
 
 1. 用 VS Code 打开本仓库根目录。
 2. 按 **`F5`** 启动预设调试配置 `Run DeepSeek Harness VS Code Extension`（定义于 [`.vscode/launch.json`](./.vscode/launch.json)）。
 3. 在弹出的 Extension Development Host 窗口左侧 Activity Bar 点击 **DeepSeek Harness** 鲸鱼图标即可使用。
 
-### 3. 常用命令与配置
+### 4. 常用命令与配置
 
 - 命令面板（`Cmd+Shift+P`）：
   - `DeepSeek Harness: New Chat` — 在当前工作区新建对话标签页

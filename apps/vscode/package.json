@@ -117,7 +117,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "package:vsix": "tsx scripts/package-vsix.ts"
   },
   "dependencies": {
     "ws": "^8.21.3"

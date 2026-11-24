@@ -6,23 +6,21 @@
  * - Mounts DSH's left sidebar inside the VS Code Activity Bar (`dsh.sidebar`).
  * - Opens conversations, Plugins, Schedules, and Settings as native VS Code Editor Tabs.
  */
-import { resolve } from 'node:path'
 import * as vscode from 'vscode'
 import { DshEditorPanelManager } from './editor-panel-manager.ts'
 import { DshHostManager } from './host-manager.ts'
+import { resolveExtensionRuntimePaths } from './runtime-paths.ts'
 import { DshSidebarViewProvider } from './sidebar-provider.ts'
 import { BundleCache } from './webview-bridge.ts'
-import { resolveWebviewResources } from './webview-html.ts'
 
 let activeHostManager: DshHostManager | undefined
 
 export function activate(context: vscode.ExtensionContext): void {
-  const repoRoot = resolve(context.extensionPath, '../..')
+  const resources = resolveExtensionRuntimePaths(context.extensionPath)
   const output = vscode.window.createOutputChannel('DeepSeek Harness')
-  const hostManager = new DshHostManager(repoRoot, output)
+  const hostManager = new DshHostManager(resources, output)
   activeHostManager = hostManager
   const bundleCache = new BundleCache()
-  const resources = resolveWebviewResources(repoRoot, context.extensionPath)
 
   let sidebarProvider: DshSidebarViewProvider | undefined
   const editorManager = new DshEditorPanelManager(
