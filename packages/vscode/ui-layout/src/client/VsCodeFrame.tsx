@@ -1,16 +1,20 @@
 /**
  * VS Code split-surface root frame:
- * - In `sidebar` mode (VS Code Activity Bar view): renders DSH's left sidebar at 100% width.
- * - In `editor` mode (VS Code Editor Tab): renders DSH's main panel (Conversation / Plugins / Schedules / Settings)
- *   plus the optional rightbar track (used only for Plan / Changed-Files Review).
+ * - In `sidebar` mode (VS Code Activity Bar view): renders compact VS Code sidebar at 100% width.
+ * - In `editor` mode (VS Code Editor Tab): renders DSH's main panel (Conversation / Plugins / Schedules /
+ *   right-side Settings dialog) plus the optional rightbar track (used only for Plan / Changed-Files Review).
  * - Outside VS Code (plain browser fallback): renders both sidebar and main panel side-by-side.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import type { PluginInventorySnapshot } from '@deepseek-ai/dsh-api-remotes/client'
+import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {
-  InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
+  HostObservable, InjectFace, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type { VsCodeBridge, VsCodeSurfaceMode } from './bridge.ts'
+import type { VsCodeUiKey } from './locales.ts'
+import { SettingsTabPanel, type SettingsTabSectionRow } from './SettingsTabPanel.tsx'
 import {
   CENTER_MIN, clampWidth, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN,
   type createVsCodeLayoutStore,
@@ -20,21 +24,86 @@ import css from './VsCodeFrame.module.css'
 export interface VsCodeFrameInjected {
   readonly mode: VsCodeSurfaceMode | 'standalone'
   readonly bridge: VsCodeBridge | undefined
+  readonly settingsPanelId: MainPanelId
   readonly resolvePanelTitle: (panelId: string) => string
+  readonly closeSettings: () => void
+  readonly listPluginInventory: () => Promise<PluginInventorySnapshot>
+  readonly resolvePresetName: (
+    preset: NonNullable<PluginInventorySnapshot['agentPresets']>[number],
+  ) => string
+  readonly resolveLocalizedText: (
+    text: NonNullable<NonNullable<PluginInventorySnapshot['entries'][number]['meta']>['description']>,
+  ) => string
+  readonly tUi: (key: VsCodeUiKey, params?: Readonly<Record<string, string>>) => string
+  readonly hooks: {
+    readonly settingsSections: HostObservable<readonly SettingsTabSectionRow[]>
+  }
 }
 
 export type VsCodeFrameProps =
   & PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'main' | 'rightbar' | 'shell.bottom' | 'shell.overlay' | 'shell.leading'>
+  & PropsRenderFactories
+  & PropsRenderSlots<
+    | 'sidebar'
+    | 'main'
+    | 'rightbar'
+    | 'shell.bottom'
+    | 'shell.overlay'
+    | 'shell.leading'
+    | 'settings.action'
+    | 'settings.section.icon'
+  >
   & PropsStore<ReturnType<typeof createVsCodeLayoutStore>>
   & PropsLocale<'common'>
   & InjectFace<VsCodeFrameInjected>
 
 function MainPanel({
+  settingsPanelId,
+  closeSettings,
+  listPluginInventory,
+  resolvePresetName,
+  resolveLocalizedText,
+  tUi,
   usePanelInfo,
+  useSettingsSections,
   renderSlot,
-}: Pick<PropsRuntime<'root'>, 'usePanelInfo'> & PropsRenderSlots<'main'>): ReactNode {
+  renderFactorySlot,
+}: Pick<
+  VsCodeFrameProps,
+  | 'settingsPanelId'
+  | 'closeSettings'
+  | 'listPluginInventory'
+  | 'resolvePresetName'
+  | 'resolveLocalizedText'
+  | 'tUi'
+  | 'usePanelInfo'
+  | 'useSettingsSections'
+  | 'renderSlot'
+  | 'renderFactorySlot'
+>): ReactNode {
   const panelId = usePanelInfo(info => info.activePanelId)
+  const settingsRows = useSettingsSections(snapshot => snapshot)
+
+  if (panelId === settingsPanelId) {
+    return (
+      <div className={css.mainPanel} data-global-panel>
+        <SettingsTabPanel
+          rows={settingsRows}
+          onClose={closeSettings}
+          renderFactorySlot={renderFactorySlot}
+          renderActions={() => renderSlot('settings.action', {})}
+          renderSectionIcon={(id, active, fallback) =>
+            renderSlot('settings.section.icon', { size: 16, active }, { only: id, fallback })}
+          renderPluginsPanel={() => renderSlot('main', {}, { entryKey: 'plugins' })}
+          listPluginInventory={listPluginInventory}
+          resolvePresetName={resolvePresetName}
+          resolveLocalizedText={resolveLocalizedText}
+          t={tUi}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className={css.mainPanel} data-global-panel={panelId !== null || undefined}>
       {renderSlot('main', {}, { entryKey: panelId ?? 'conversation' })}
@@ -137,12 +206,20 @@ function RightbarDragHandle(props: {
 export function VsCodeFrame({
   mode,
   bridge,
+  settingsPanelId,
   resolvePanelTitle,
+  closeSettings,
+  listPluginInventory,
+  resolvePresetName,
+  resolveLocalizedText,
+  tUi,
   useStore,
   useSessions,
   usePanelInfo,
+  useSettingsSections,
   actions,
   renderSlot,
+  renderFactorySlot,
 }: VsCodeFrameProps): ReactNode {
   const layoutInfo = useStore(state => state.layoutInfo)
   const frameRef = useRef<HTMLDivElement | null>(null)
@@ -205,6 +282,21 @@ export function VsCodeFrame({
     )
   }
 
+  const mainPanel = (
+    <MainPanel
+      settingsPanelId={settingsPanelId}
+      closeSettings={closeSettings}
+      listPluginInventory={listPluginInventory}
+      resolvePresetName={resolvePresetName}
+      resolveLocalizedText={resolveLocalizedText}
+      tUi={tUi}
+      usePanelInfo={usePanelInfo}
+      useSettingsSections={useSettingsSections}
+      renderSlot={renderSlot}
+      renderFactorySlot={renderFactorySlot}
+    />
+  )
+
   if (mode === 'editor') {
     return (
       <div
@@ -226,9 +318,7 @@ export function VsCodeFrame({
             resolvePanelTitle={resolvePanelTitle}
           />
         )}
-        <div className={css.centerCol}>
-          <MainPanel usePanelInfo={usePanelInfo} renderSlot={renderSlot} />
-        </div>
+        <div className={css.centerCol}>{mainPanel}</div>
         <div className={css.rightbarCol} data-rightbar-col>
           {renderSlot('rightbar', {
             width: rightbarNormal,
@@ -256,9 +346,7 @@ export function VsCodeFrame({
       <div className={css.sidebarCol}>
         {renderSlot('sidebar', { collapsed: false, width: 260, drawer: false })}
       </div>
-      <div className={css.fallbackCenter}>
-        <MainPanel usePanelInfo={usePanelInfo} renderSlot={renderSlot} />
-      </div>
+      <div className={css.fallbackCenter}>{mainPanel}</div>
       <div className={css.bottomRow} data-shell-bottom>{bottom}</div>
       <div className={css.overlayLayer} data-shell-overlay>{overlays}</div>
     </div>

@@ -3,13 +3,15 @@
  *
  * Replaces both `@deepseek-ai/dsh-client-ui-layout` and `@deepseek-ai/dsh-client-ui-sidebar`
  * in the VS Code profile while preserving the exact `ctx.layout` service interface and
- * child slot contracts (`sidebar.panellist`, `sidebar.workspaces`, `settings.section.view`, etc.)
- * so official vendor plugins (`ui-workspace`, `ui-chat`, `ui-settings-models`, `ui-plugin-manager`,
- * `ui-schedule`, etc.) work without modification.
+ * child slot contracts (`sidebar.panellist`, `sidebar.workspaces`, `settings.section.view`,
+ * `settings.action`, `settings.section.icon`, etc.) so official vendor plugins work without modification.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { PluginInventorySnapshot } from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
+import { presetDisplayText } from '@deepseek-ai/dsh-agent-preset-registry/display'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -28,6 +30,7 @@ import { resolveSlotLabel, type HostObservable } from '@deepseek-ai/dsh-client-u
 import { getVsCodeBridge, type VsCodeNavigateTarget } from './bridge.ts'
 import { de, en, es, fr, ja, pt, ru, zh, type VsCodeUiKey } from './locales.ts'
 import { VsCodeLayoutController } from './service.ts'
+import type { SettingsTabSectionRow } from './SettingsTabPanel.tsx'
 import { createVsCodeLayoutStore } from './stores.ts'
 import { VsCodeThemePresenter } from './theme-presenter.ts'
 import { VsCodeFrame, type VsCodeFrameInjected } from './VsCodeFrame.tsx'
@@ -37,11 +40,6 @@ import {
   VsCodeSidebarRoot,
   type VsCodeSidebarInjected,
 } from './VsCodeSidebarRoot.tsx'
-import {
-  SettingsTabPanel,
-  type SettingsTabPanelInjected,
-  type SettingsTabSectionRow,
-} from './SettingsTabPanel.tsx'
 
 export type { ILayout, MainPanelId, PanelInfo }
 export type {
@@ -78,10 +76,65 @@ export function apply(ctx: ClientContext): void {
     () => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }),
     'vscode-ui-layout: dictionaries',
   )
-  const t = ctx.locale.bind(NS)
+  const tUi = ctx.locale.bind(NS)
+  const agentPresetCopy = ctx.locale.bind('settings.agentPreset')
+
+  const listPluginInventory = async (): Promise<PluginInventorySnapshot> => {
+    const existing = ctx.get('remote.pluginInventory')
+    if (existing !== undefined) {
+      const result = await existing.list()
+      if (!result.ok) {
+        throw new Error(`pluginInventory.list failed: ${result.error.code}: ${result.error.message}`)
+      }
+      return result.value
+    }
+    return await new Promise<PluginInventorySnapshot>((resolve, reject) => {
+      let settled = false
+      let fiber: { dispose(): void | Promise<void> } | undefined
+      const cleanup = (): void => {
+        clearTimeout(timer)
+        const current = fiber
+        fiber = undefined
+        if (current !== undefined) void current.dispose()
+      }
+      const timer = setTimeout(() => {
+        if (settled) return
+        settled = true
+        cleanup()
+        reject(new Error('pluginInventory service timed out'))
+      }, 10_000)
+      fiber = ctx.inject(['remote', 'remote.pluginInventory'], (readyCtx) => {
+        if (settled) return
+        void readyCtx.remote.pluginInventory.list().then((result) => {
+          if (settled) return
+          settled = true
+          cleanup()
+          if (!result.ok) {
+            reject(new Error(`pluginInventory.list failed: ${result.error.code}: ${result.error.message}`))
+            return
+          }
+          resolve(result.value)
+        }, (error: unknown) => {
+          if (settled) return
+          settled = true
+          cleanup()
+          reject(error instanceof Error ? error : new Error(String(error)))
+        })
+      })
+      if (settled) cleanup()
+    })
+  }
+
+  const resolvePresetName = (
+    preset: NonNullable<PluginInventorySnapshot['agentPresets']>[number],
+  ): string => presetDisplayText(preset, agentPresetCopy).name
+
+  const resolveLocalizedText = (
+    text: NonNullable<NonNullable<PluginInventorySnapshot['entries'][number]['meta']>['description']>,
+  ): string => ctx.locale.resolveText(text)
 
   const resolvePanelTitle = (panelId: string): string => {
-    if (panelId === SETTINGS_PANEL_ID) return t('settings.title')
+    if (panelId === SETTINGS_PANEL_ID) return tUi('settings.title')
     const entry = ctx.slots.entriesOfSlot('sidebar.panellist').find(item => item.options.id === panelId)
     return (entry === undefined ? undefined : resolveSlotLabel(entry.options.label)) ?? panelId
   }
@@ -97,12 +150,15 @@ export function apply(ctx: ClientContext): void {
     let pendingEditorPanel: MainPanelId | null = initialPanel
 
     const hasMainPanel = (id: MainPanelId): boolean =>
-      ctx.slots.entries('main').some(entry => entry.options.key === id)
+      id === SETTINGS_PANEL_ID || ctx.slots.entries('main').some(entry => entry.options.key === id)
 
     const retainMainPanels = (): void => {
-      const registered = ctx.slots.entries('main').flatMap(entry =>
-        entry.options.key === undefined ? [] : [entry.options.key],
-      )
+      const registered = [
+        SETTINGS_PANEL_ID,
+        ...ctx.slots.entries('main').flatMap(entry =>
+          entry.options.key === undefined ? [] : [entry.options.key],
+        ),
+      ]
       if (pendingEditorPanel !== null && registered.includes(pendingEditorPanel)) {
         const target = pendingEditorPanel
         pendingEditorPanel = null
@@ -132,24 +188,57 @@ export function apply(ctx: ClientContext): void {
       panelInfo,
       mode === 'sidebar' && bridge !== undefined
         ? {
-            onSelectPanel: (panelId) => {
-              if (panelId !== null) {
-                bridge.openPanel(panelId, resolvePanelTitle(panelId))
-                return
-              }
-              const main = findRetainedMainSession()
-              if (main !== undefined) {
-                bridge.openConversation(main.id, main.title)
-                return
-              }
-              const list = ctx.get('sessions')?.list.getSnapshot()
-              if (list !== undefined && list.ids.length === 0) {
-                bridge.openConversation(undefined, t('session.new'))
-              }
-            },
-          }
+          onSelectPanel: (panelId) => {
+            if (panelId !== null) {
+              bridge.openPanel(panelId, resolvePanelTitle(panelId))
+              return
+            }
+            const main = findRetainedMainSession()
+            if (main !== undefined) {
+              bridge.openConversation(main.id, main.title)
+              return
+            }
+            const list = ctx.get('sessions')?.list.getSnapshot()
+            if (list !== undefined && list.ids.length === 0) {
+              bridge.openConversation(undefined, tUi('session.new'))
+            }
+          },
+        }
         : {},
     )
+
+    // Settings sections observable shared by the right-side Settings dialog.
+    // Places Models (third-party & custom model providers) first and excludes DeepSeek Account.
+    let sectionsVersion = -1
+    let sectionsLocale = -1
+    let sectionRows: readonly SettingsTabSectionRow[] = []
+    const settingsSections: HostObservable<readonly SettingsTabSectionRow[]> = {
+      getSnapshot: () => {
+        const version = ctx.slots.getVersion('settings.section')
+        const revision = ctx.locale.getSnapshot().revision
+        if (version !== sectionsVersion || revision !== sectionsLocale) {
+          sectionsVersion = version
+          sectionsLocale = revision
+          sectionRows = ctx.slots.entries('settings.section')
+            .map(entry => ({
+              id: entry.options.id ?? '',
+              order: entry.options.id === 'models' ? -1 : (entry.options.order ?? 0),
+              label: resolveSlotLabel(entry.options.label) ?? entry.options.id ?? '',
+            }))
+            .filter(row => row.id.length > 0 && row.id !== 'account')
+            .sort((a, b) => a.order - b.order)
+        }
+        return sectionRows
+      },
+      subscribe: (listener) => {
+        const offSlots = ctx.slots.subscribe('settings.section', listener)
+        const offLocale = ctx.locale.subscribe(listener)
+        return () => {
+          offSlots()
+          offLocale()
+        }
+      },
+    }
 
     const disposePanelInfo = ctx.slots.provideRoot({ hooks: { panelInfo: layout.panelInfo } })
     const disposeService = ctx.reflect.provide('layout', layout)
@@ -164,9 +253,25 @@ export function apply(ctx: ClientContext): void {
         'shell.bottom': { kind: 'single', scope: 'root' },
         'shell.overlay': { kind: 'list', scope: 'root' },
         'shell.leading': { kind: 'single', scope: 'root' },
+        'settings.action': { kind: 'list', scope: 'root' },
+        'settings.section.icon': { kind: 'list', scope: 'root', inline: true },
       },
       store,
-      inject: (): VsCodeFrameInjected => ({ mode, bridge, resolvePanelTitle }),
+      inject: (): VsCodeFrameInjected => ({
+        mode,
+        bridge,
+        settingsPanelId: SETTINGS_PANEL_ID,
+        resolvePanelTitle,
+        closeSettings: () => {
+          if (bridge !== undefined) bridge.closeTab()
+          else layout.selectPanel(null)
+        },
+        listPluginInventory,
+        resolvePresetName,
+        resolveLocalizedText,
+        tUi,
+        hooks: { settingsSections },
+      }),
     }, VsCodeFrame)
 
     // Sidebar shell: compact top toolbar (New Session + right-aligned plugin icons + Settings gear)
@@ -208,7 +313,7 @@ export function apply(ctx: ClientContext): void {
           if (uiWorkspace !== undefined) {
             uiWorkspace.startSession(workspaceId)
           } else {
-            bridge?.openConversation(undefined, t('session.new'), workspaceId)
+            bridge?.openConversation(undefined, tUi('session.new'), workspaceId)
           }
         },
         selectPanel: (id) => { layout.selectPanel(id) },
@@ -219,51 +324,6 @@ export function apply(ctx: ClientContext): void {
     const offPanelSlots = ctx.slots.subscribe('sidebar.panellist', syncPanels)
     const offPanelLocale = ctx.locale.subscribe(syncPanels)
     syncPanels()
-
-    // Right-side Settings dialog rendered inside a VS Code Editor Tab (`vscode-settings`).
-    // Places Models (third-party / custom model configuration) first and filters out DeepSeek account.
-    let sectionsVersion = -1
-    let sectionsLocale = -1
-    let sectionRows: readonly SettingsTabSectionRow[] = []
-    const settingsSections: HostObservable<readonly SettingsTabSectionRow[]> = {
-      getSnapshot: () => {
-        const version = ctx.slots.getVersion('settings.section')
-        const revision = ctx.locale.getSnapshot().revision
-        if (version !== sectionsVersion || revision !== sectionsLocale) {
-          sectionsVersion = version
-          sectionsLocale = revision
-          sectionRows = ctx.slots.entries('settings.section')
-            .map(entry => ({
-              id: entry.options.id ?? '',
-              order: entry.options.id === 'models' ? -1 : (entry.options.order ?? 0),
-              label: resolveSlotLabel(entry.options.label) ?? entry.options.id ?? '',
-            }))
-            .filter(row => row.id.length > 0 && row.id !== 'account')
-            .sort((a, b) => a.order - b.order)
-        }
-        return sectionRows
-      },
-      subscribe: (listener) => {
-        const offSlots = ctx.slots.subscribe('settings.section', listener)
-        const offLocale = ctx.locale.subscribe(listener)
-        return () => {
-          offSlots()
-          offLocale()
-        }
-      },
-    }
-    const disposeSettingsTab = ctx.slots.register({
-      name: 'main',
-      key: SETTINGS_PANEL_ID,
-      locale: NS,
-      inject: (): SettingsTabPanelInjected => ({
-        onClose: () => {
-          if (bridge !== undefined) bridge.closeTab()
-          else layout.selectPanel(null)
-        },
-        hooks: { sections: settingsSections },
-      }),
-    }, SettingsTabPanel)
 
     const disposePanels = ctx.slots.subscribe('main', retainMainPanels)
     retainMainPanels()
@@ -349,7 +409,6 @@ export function apply(ctx: ClientContext): void {
       disposePanelIconFactory()
       layout.dispose()
       disposePanels()
-      disposeSettingsTab()
       disposeRegistration()
       disposePanelInfo()
       void disposeService()

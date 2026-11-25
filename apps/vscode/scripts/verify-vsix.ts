@@ -113,6 +113,7 @@ async function verifyNativeHostBoot(extRoot: string, tempRoot: string): Promise<
     for (const pruned of [
       '@deepseek-ai/dsh-client-ui-settings-account',
       '@deepseek-ai/dsh-client-ui-account-notifications',
+      '@deepseek-ai/dsh-client-ui-settings-session-log',
       '@deepseek-ai/dsh-client-ui-sidebar-files',
       '@deepseek-ai/dsh-client-ui-sidebar-terminal',
       '@deepseek-ai/dsh-client-ui-sidebar-browser',

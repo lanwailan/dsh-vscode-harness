@@ -31,6 +31,9 @@
 - id: ui-account-notifications
   disabled: true
 
+- id: ui-settings-session-log
+  disabled: true
+
 # Disable Web right-sidebar panels that overlap native VS Code IDE features
 # (Explorer, Integrated Terminal, Editor preview, Browser).
 # `ui-sidebar-right` itself remains mounted so Plan Review (`ui-plan`),

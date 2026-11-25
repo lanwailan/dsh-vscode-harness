@@ -837,9 +837,57 @@ importers:
       '@deepseek-ai/dsh-compaction':
         specifier: workspace:*
         version: link:../../packages/compaction/compaction
+      '@deepseek-ai/dsh-cua-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/cua-bundle
+      '@deepseek-ai/dsh-cua-mcp':
+        specifier: workspace:*
+        version: link:../../packages/experimental/cua-mcp
+      '@deepseek-ai/dsh-deepseek-chat-import':
+        specifier: workspace:*
+        version: link:../../packages/experimental/deepseek-chat-import
       '@deepseek-ai/dsh-error':
         specifier: workspace:*
         version: link:../../packages/util/error
+      '@deepseek-ai/dsh-experimental-auto-review':
+        specifier: workspace:*
+        version: link:../../packages/experimental/auto-review
+      '@deepseek-ai/dsh-experimental-badge-skill-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/badge-skill-bundle
+      '@deepseek-ai/dsh-experimental-cot-translation-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/cot-translation-bundle
+      '@deepseek-ai/dsh-experimental-forge-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/forge-bundle
+      '@deepseek-ai/dsh-experimental-inspector-profile':
+        specifier: workspace:*
+        version: link:../../packages/experimental/inspector-profile
+      '@deepseek-ai/dsh-experimental-liveshare':
+        specifier: workspace:*
+        version: link:../../packages/experimental/liveshare
+      '@deepseek-ai/dsh-experimental-plugin-market-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/plugin-market-bundle
+      '@deepseek-ai/dsh-experimental-ralph-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/ralph-bundle
+      '@deepseek-ai/dsh-experimental-session-search':
+        specifier: workspace:*
+        version: link:../../packages/experimental/session-search
+      '@deepseek-ai/dsh-experimental-session-titles-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/session-titles-bundle
+      '@deepseek-ai/dsh-experimental-terminal-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/terminal-bundle
+      '@deepseek-ai/dsh-experimental-tool-worktree':
+        specifier: workspace:*
+        version: link:../../packages/experimental/tool-worktree
+      '@deepseek-ai/dsh-experimental-voice-input-bundle':
+        specifier: workspace:*
+        version: link:../../packages/experimental/voice-input-bundle
       '@deepseek-ai/dsh-fs':
         specifier: workspace:*
         version: link:../../packages/fs/fs
@@ -888,6 +936,9 @@ importers:
       '@deepseek-ai/dsh-spill':
         specifier: workspace:*
         version: link:../../packages/spill/spill
+      '@deepseek-ai/dsh-timeline':
+        specifier: workspace:*
+        version: link:../../packages/experimental/timeline
       '@deepseek-ai/dsh-util-workspace-path':
         specifier: workspace:*
         version: link:../../packages/util/workspace-path
@@ -19878,6 +19929,12 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:~
         version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-agent-preset-registry':
+        specifier: workspace:*
+        version: link:../../preset/agent-preset-registry
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: workspace:*
+        version: link:../../api/remotes
       '@deepseek-ai/dsh-api-session-controller':
         specifier: workspace:*
         version: link:../../api/session-controller
@@ -19893,6 +19950,9 @@ importers:
       '@deepseek-ai/dsh-client-store':
         specifier: workspace:*
         version: link:../../client/store
+      '@deepseek-ai/dsh-client-ui-agent-preset':
+        specifier: workspace:*
+        version: link:../../client/ui-agent-preset
       '@deepseek-ai/dsh-client-ui-layout':
         specifier: workspace:*
         version: link:../../client/ui-layout
